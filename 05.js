@@ -1,62 +1,50 @@
 /*
  * No explanation.
  */
+
 this.on('start', function(){
-	this.thrusters.top(true);
-	this.thrusters.left(true);
+	go(this, 'br');
 });
 
-var left = false;
-var right = false;
-var top = false;
-var bottom = false;
-var left_count = 0;
-var right_count = 0;
-var top_count = 0;
-var bottom_count = 0;
+var state = {left: false, right: false, top: false, bottom: false};
+var contact_count = {left: 0, right: 0, top: 0, bottom: 0};
 
-
-this.on('sensor:right', function(contact) {right = contact;right && right_count++;});
-this.on('sensor:left', function(contact) {left = contact;left && left_count++;});
-this.on('sensor:top', function(contact) {top = contact;top && top_count++;});
-this.on('sensor:bottom', function(contact) {bottom = contact;bottom && bottom_count++;});
-
-
-this.on('sensor:top', function(contact) {
+function contact_callback(_this, direction, contact){
+	state[direction] = contact;
 	if(contact){
-		this.thrusters.top(false);
-		this.thrusters.bottom(true);
+		contact_count[direction]++;
 	}
-});
-
-this.on('sensor:bottom', function(contact) {
+	var dir2go = {'right': 'br', 'top': 'tr', 'left': 'lt', 'bottom': 'bl'};
 	if(contact){
-		this.thrusters.top(true);
-		this.thrusters.bottom(false);
+		if(direction == 'left' && contact_count['left'] == 2){
+			go(_this, 'rt');
+		}
+		else if(direction == 'right' && contact_count['left'] == 2){
+			go(_this, 'tl');
+		}
+		else{
+			go(_this, dir2go[direction]);
+		}
 	}
-});
+}
 
+function go(_this, direction){
+	t = {'t':'bottom', 'b':'top', 'l':'right', 'r':'left'};
+	if(!direction) direction = '';
+	var l = ['l', 'r', 't', 'b'];
+	for(var i in l){
+		var d = l[i];
+		if(direction.indexOf(d) === -1){
+			_this.thrusters[t[d]](false);
+		}
+		else{
+			_this.thrusters[t[d]](true);
+		}
+	}
+}
 
-this.on('sensor:left', function(contact) {
-	console.log(left_count);
-	if(contact && left_count != 2){
-		this.thrusters.left(false);
-		this.thrusters.right(true);
-	}
-	else if(contact && left_count == 2){
-		this.thrusters.left(true);
-		this.thrusters.right(false);
-	}
-});
+this.on('sensor:right', function(contact) {contact_callback(this, 'right', contact);});
+this.on('sensor:left', function(contact) {contact_callback(this, 'left', contact);});
+this.on('sensor:top', function(contact) {contact_callback(this, 'top', contact);});
+this.on('sensor:bottom', function(contact) {contact_callback(this, 'bottom', contact);});
 
-this.on('sensor:right', function(contact) {
-	if(contact &&  left_count != 2){
-		this.thrusters.left(true);
-		this.thrusters.right(false);
-	}
-	else if(contact &&  left_count == 2){
-		this.thrusters.left(false);
-		this.thrusters.right(true);
-	}
-
-});
